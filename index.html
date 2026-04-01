@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hawthorne Roulette</title>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800;900&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --bg: #0a0a0f;
+    --surface: #13131a;
+    --surface2: #1a1a24;
+    --border: #2a2a3a;
+    --text: #e8e6f0;
+    --text-dim: #8888a0;
+    --orange: #ff6b35;
+    --orange-glow: #ff6b3540;
+    --green: #36e3b8;
+    --green-glow: #36e3b830;
+    --purple: #a78bfa;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Outfit', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  .grain {
+    position: fixed; inset: 0; z-index: 0; pointer-events: none; opacity: 0.03;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+
+  .container {
+    position: relative; z-index: 1;
+    max-width: 640px; margin: 0 auto; padding: 40px 20px 60px;
+  }
+
+  header {
+    text-align: center; margin-bottom: 48px;
+  }
+
+  .logo-text {
+    font-family: 'Space Mono', monospace;
+    font-size: 11px; letter-spacing: 4px; text-transform: uppercase;
+    color: var(--text-dim); margin-bottom: 12px;
+  }
+
+  h1 {
+    font-size: clamp(2.4rem, 8vw, 3.6rem);
+    font-weight: 900; line-height: 1.05;
+    background: linear-gradient(135deg, var(--orange), #ff9b6b, var(--green));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .subtitle {
+    font-size: 15px; color: var(--text-dim); margin-top: 8px;
+    font-weight: 300; letter-spacing: 0.3px;
+  }
+
+  .subtitle span { color: var(--orange); font-weight: 600; }
+
+  /* Filter pills */
+  .filter-row {
+    display: flex; gap: 8px; justify-content: center; margin-bottom: 32px;
+    flex-wrap: wrap;
+  }
+
+  .pill {
+    padding: 10px 24px; border-radius: 100px;
+    border: 1.5px solid var(--border);
+    background: var(--surface);
+    color: var(--text-dim);
+    font-family: 'Outfit', sans-serif; font-size: 14px; font-weight: 600;
+    cursor: pointer; transition: all 0.25s ease;
+    user-select: none;
+  }
+
+  .pill:hover { border-color: var(--text-dim); color: var(--text); }
+
+  .pill.active-food {
+    border-color: var(--orange); color: var(--orange);
+    background: linear-gradient(135deg, #ff6b3512, #ff6b3508);
+    box-shadow: 0 0 20px var(--orange-glow);
+  }
+
+  .pill.active-drink {
+    border-color: var(--green); color: var(--green);
+    background: linear-gradient(135deg, #36e3b812, #36e3b808);
+    box-shadow: 0 0 20px var(--green-glow);
+  }
+
+  .pill.active-either {
+    border-color: var(--purple); color: var(--purple);
+    background: linear-gradient(135deg, #a78bfa12, #a78bfa08);
+    box-shadow: 0 0 20px #a78bfa30;
+  }
+
+  /* Spin button */
+  .spin-btn {
+    display: block; width: 100%; padding: 18px;
+    border: none; border-radius: 16px;
+    font-family: 'Outfit', sans-serif; font-size: 18px; font-weight: 800;
+    letter-spacing: 1px; text-transform: uppercase;
+    cursor: pointer; position: relative; overflow: hidden;
+    background: linear-gradient(135deg, var(--orange), #e84520);
+    color: #fff;
+    box-shadow: 0 4px 30px var(--orange-glow), 0 0 0 0 var(--orange);
+    transition: all 0.3s ease;
+  }
+
+  .spin-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 40px var(--orange-glow), 0 0 0 0 var(--orange);
+  }
+
+  .spin-btn:active { transform: translateY(0); }
+
+  .spin-btn.spinning {
+    pointer-events: none;
+    background: linear-gradient(135deg, var(--surface2), var(--surface));
+    color: var(--text-dim);
+    box-shadow: none;
+  }
+
+  /* Slot machine */
+  .slot-window {
+    margin: 32px 0;
+    border-radius: 20px;
+    border: 1.5px solid var(--border);
+    background: var(--surface);
+    height: 80px;
+    overflow: hidden;
+    position: relative;
+  }
+
+  .slot-window::before, .slot-window::after {
+    content: ''; position: absolute; left: 0; right: 0; height: 20px; z-index: 2;
+    pointer-events: none;
+  }
+  .slot-window::before { top: 0; background: linear-gradient(to bottom, var(--surface), transparent); }
+  .slot-window::after { bottom: 0; background: linear-gradient(to top, var(--surface), transparent); }
+
+  .slot-track {
+    display: flex; flex-direction: column; align-items: center;
+    transition: none;
+    will-change: transform;
+  }
+
+  .slot-item {
+    height: 80px; display: flex; align-items: center; justify-content: center;
+    font-size: 18px; font-weight: 600; white-space: nowrap;
+    padding: 0 20px; width: 100%;
+    color: var(--text-dim);
+  }
+
+  .slot-item .slot-emoji { margin-right: 10px; font-size: 22px; }
+
+  /* Result card */
+  .result-card {
+    border-radius: 20px;
+    border: 1.5px solid var(--border);
+    background: var(--surface);
+    padding: 32px;
+    text-align: center;
+    opacity: 0; transform: scale(0.95) translateY(10px);
+    transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+    margin-top: 24px;
+  }
+
+  .result-card.visible {
+    opacity: 1; transform: scale(1) translateY(0);
+  }
+
+  .result-type-badge {
+    display: inline-block; padding: 4px 14px; border-radius: 100px;
+    font-size: 11px; font-weight: 700; letter-spacing: 2px;
+    text-transform: uppercase; margin-bottom: 16px;
+  }
+
+  .badge-food { background: #ff6b3520; color: var(--orange); border: 1px solid #ff6b3540; }
+  .badge-drink { background: #36e3b820; color: var(--green); border: 1px solid #36e3b840; }
+  .badge-both { background: #a78bfa20; color: var(--purple); border: 1px solid #a78bfa40; }
+
+  .result-name {
+    font-size: clamp(1.6rem, 5vw, 2.2rem);
+    font-weight: 800; line-height: 1.15; margin-bottom: 8px;
+  }
+
+  .result-address {
+    font-size: 13px; color: var(--text-dim); margin-bottom: 16px;
+    font-weight: 300;
+  }
+
+  .result-stars {
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    margin-bottom: 20px;
+  }
+
+  .star-score {
+    font-family: 'Space Mono', monospace;
+    font-size: 22px; font-weight: 700; color: #fbbf24;
+  }
+
+  .star-icons { color: #fbbf24; font-size: 16px; letter-spacing: 2px; }
+  .star-count { font-size: 13px; color: var(--text-dim); }
+
+  .result-link {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 12px 28px; border-radius: 12px;
+    background: var(--surface2); border: 1.5px solid var(--border);
+    color: var(--text); text-decoration: none;
+    font-size: 14px; font-weight: 600;
+    transition: all 0.25s ease;
+  }
+
+  .result-link:hover {
+    border-color: var(--orange); color: var(--orange);
+    background: #ff6b3508;
+  }
+
+  .result-link svg { width: 16px; height: 16px; }
+
+  /* Count display */
+  .count-display {
+    text-align: center; margin-top: 24px;
+    font-size: 12px; color: var(--text-dim);
+    font-family: 'Space Mono', monospace;
+  }
+
+  .count-display span { color: var(--orange); }
+
+  /* Confetti canvas */
+  #confetti {
+    position: fixed; inset: 0; z-index: 100; pointer-events: none;
+  }
+
+  /* Responsive */
+  @media (max-width: 480px) {
+    .container { padding: 24px 16px 40px; }
+    .result-card { padding: 24px 16px; }
+    .pill { padding: 8px 18px; font-size: 13px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="grain"></div>
+<canvas id="confetti"></canvas>
+
+<div class="container">
+  <header>
+    <div class="logo-text">SE Portland</div>
+    <h1>Hawthorne Roulette</h1>
+    <p class="subtitle">Spin the wheel on <span>50+ spots</span> from 1st to 60th</p>
+  </header>
+
+  <div class="filter-row">
+    <button class="pill active-either" data-filter="either" onclick="setFilter('either')">Either</button>
+    <button class="pill" data-filter="food" onclick="setFilter('food')">Food</button>
+    <button class="pill" data-filter="drink" onclick="setFilter('drink')">Drink</button>
+  </div>
+
+  <div class="slot-window" id="slotWindow">
+    <div class="slot-track" id="slotTrack"></div>
+  </div>
+
+  <button class="spin-btn" id="spinBtn" onclick="spin()">Spin It</button>
+
+  <div class="result-card" id="resultCard">
+    <div class="result-type-badge badge-food" id="resultBadge">FOOD</div>
+    <div class="result-name" id="resultName"></div>
+    <div class="result-address" id="resultAddr"></div>
+    <div class="result-stars">
+      <span class="star-score" id="resultScore"></span>
+      <span class="star-icons" id="resultStarIcons"></span>
+      <span class="star-count" id="resultCount"></span>
+    </div>
+    <a class="result-link" id="resultLink" href="#" target="_blank" rel="noopener">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+      Search on Google
+    </a>
+  </div>
+
+  <div class="count-display" id="countDisplay"></div>
+</div>
+
+<script>
+const PLACES = [
+  // FOOD
+  {name:"Nice Time PDX", addr:"3757 SE Hawthorne", rating:5.0, count:27, cat:"food", emoji:"🍝"},
+  {name:"Little Griddle", addr:"3566 SE Hawthorne", rating:4.6, count:271, cat:"food", emoji:"🥞"},
+  {name:"Jam On Hawthorne", addr:"2239 SE Hawthorne", rating:4.5, count:3246, cat:"food", emoji:"🍳"},
+  {name:"Farmhouse Kitchen Thai", addr:"3354 SE Hawthorne", rating:4.7, count:2968, cat:"food", emoji:"🍜"},
+  {name:"Bamboo House", addr:"4005 SE Hawthorne", rating:4.6, count:401, cat:"food", emoji:"🍲"},
+  {name:"Short Round / Crying Tigers", addr:"3962 SE Hawthorne", rating:4.6, count:414, cat:"food", emoji:"🐉"},
+  {name:"Cubo", addr:"3106 SE Hawthorne", rating:4.5, count:1938, cat:"food", emoji:"🇨🇺"},
+  {name:"Apizza Scholls", addr:"4741 SE Hawthorne", rating:4.6, count:2209, cat:"food", emoji:"🍕"},
+  {name:"OK Omens", addr:"1758 SE Hawthorne", rating:4.4, count:332, cat:"food", emoji:"🦪"},
+  {name:"Khao Moo Dang", addr:"3145 SE Hawthorne", rating:4.7, count:985, cat:"food", emoji:"🍛"},
+  {name:"The Hazel Room", addr:"3279 SE Hawthorne", rating:4.5, count:627, cat:"food", emoji:"🧇"},
+  {name:"Straight From New York Pizza", addr:"3701 SE Hawthorne", rating:4.2, count:397, cat:"food", emoji:"🍕"},
+  {name:"Rovente Pizzeria", addr:"2394 SE Hawthorne", rating:4.4, count:341, cat:"food", emoji:"🍕"},
+  {name:"HOTLIPS Pizza", addr:"2211 SE Hawthorne", rating:4.3, count:638, cat:"food", emoji:"🍕"},
+  {name:"Sarda Pizza", addr:"4225 SE Hawthorne", rating:5.0, count:19, cat:"food", emoji:"🍕"},
+  {name:"La Morenita", addr:"3207 SE Hawthorne", rating:4.7, count:167, cat:"food", emoji:"🌮"},
+  {name:"Las Marias Mexican Food", addr:"3950 SE Hawthorne", rating:4.7, count:35, cat:"food", emoji:"🌮"},
+  {name:"Pepino's Fresh Mexican Grill", addr:"3832 SE Hawthorne", rating:4.4, count:968, cat:"food", emoji:"🌯"},
+  {name:"\u00bfPor Qu\u00e9 No?", addr:"4635 SE Hawthorne", rating:4.5, count:3358, cat:"food", emoji:"🌮"},
+  {name:"Ni\u00f1os Birrieria", addr:"3757 SE Hawthorne", rating:4.9, count:16, cat:"food", emoji:"🫕"},
+  {name:"Hawthorne Street Food & Bar", addr:"4225 SE Hawthorne", rating:4.7, count:38, cat:"food", emoji:"🍔"},
+  {name:"Mochinut", addr:"3616 SE Hawthorne", rating:4.7, count:593, cat:"food", emoji:"🍩"},
+  {name:"Dairy Hill Ice Cream", addr:"SE 36th & Hawthorne", rating:4.3, count:92, cat:"food", emoji:"🍦"},
+  {name:"Tsuki", addr:"1445 SE Hawthorne", rating:4.9, count:136, cat:"food", emoji:"🍧"},
+  // CAFES (food-adjacent)
+  {name:"Common Grounds", addr:"4321 SE Hawthorne", rating:4.6, count:563, cat:"food", emoji:"☕"},
+  {name:"Harder Day Coffee", addr:"3757 SE Hawthorne", rating:4.4, count:17, cat:"food", emoji:"☕"},
+  {name:"Tov Coffee", addr:"3639 SE Hawthorne", rating:4.7, count:945, cat:"food", emoji:"☕"},
+  {name:"Coava Coffee Roasters", addr:"2631 SE Hawthorne", rating:4.6, count:518, cat:"food", emoji:"☕"},
+  {name:"Golden Hour Coffee", addr:"3538 SE Hawthorne", rating:4.5, count:86, cat:"food", emoji:"☕"},
+  {name:"Albina Press", addr:"5012 SE Hawthorne", rating:4.5, count:467, cat:"food", emoji:"☕"},
+  {name:"Oui Presse", addr:"1740 SE Hawthorne", rating:4.7, count:330, cat:"food", emoji:"☕"},
+  {name:"The Fresh Pot", addr:"3729 SE Hawthorne", rating:4.4, count:173, cat:"food", emoji:"☕"},
+  // DRINK
+  {name:"Bar Mame", addr:"3279 SE Hawthorne", rating:4.9, count:118, cat:"drink", emoji:"🍸"},
+  {name:"Mulligan's Bar & Grill", addr:"3518 SE Hawthorne", rating:4.3, count:392, cat:"drink", emoji:"🍺"},
+  {name:"Bar of the Gods", addr:"4801 SE Hawthorne", rating:4.4, count:552, cat:"drink", emoji:"⚡"},
+  {name:"Gold Dust Meridian", addr:"3267 SE Hawthorne", rating:4.4, count:758, cat:"drink", emoji:"🪩"},
+  {name:"Space Room Lounge", addr:"4800 SE Hawthorne", rating:4.5, count:228, cat:"drink", emoji:"👽"},
+  {name:"Angelo's", addr:"4620 SE Hawthorne", rating:4.4, count:126, cat:"drink", emoji:"🎱"},
+  {name:"Afterlife", addr:"3632 SE Hawthorne", rating:4.8, count:61, cat:"drink", emoji:"🌙"},
+  {name:"Hawthorne Hideaway", addr:"2221 SE Hawthorne", rating:4.5, count:504, cat:"drink", emoji:"🎤"},
+  {name:"No Fun Bar", addr:"1709 SE Hawthorne", rating:4.4, count:223, cat:"drink", emoji:"🎸"},
+  {name:"Steeplejack Brewing", addr:"3757 SE Hawthorne", rating:4.9, count:44, cat:"drink", emoji:"🍻"},
+  {name:"TPK Brewing Co.", addr:"5051 SE Hawthorne", rating:4.9, count:378, cat:"drink", emoji:"🐉"},
+  {name:"McMenamins Barley Mill", addr:"1629 SE Hawthorne", rating:4.4, count:398, cat:"drink", emoji:"🍺"},
+  {name:"Lucky Labrador Brew Pub", addr:"915 SE Hawthorne", rating:4.0, count:583, cat:"drink", emoji:"🐕"},
+  {name:"Firefly Wine Room", addr:"4538 SE Hawthorne", rating:5.0, count:12, cat:"drink", emoji:"🍷"},
+  {name:"Straightaway Cocktails", addr:"901 SE Hawthorne", rating:4.8, count:111, cat:"drink", emoji:"🍹"},
+];
+
+let currentFilter = 'either';
+let isSpinning = false;
+
+function getFiltered() {
+  if (currentFilter === 'either') return [...PLACES];
+  return PLACES.filter(p => p.cat === currentFilter);
+}
+
+function setFilter(f) {
+  currentFilter = f;
+  document.querySelectorAll('.pill').forEach(p => {
+    p.className = 'pill';
+    if (p.dataset.filter === f) p.classList.add('active-' + f);
+  });
+  updateCount();
+  document.getElementById('resultCard').classList.remove('visible');
+}
+
+function updateCount() {
+  const filtered = getFiltered();
+  const el = document.getElementById('countDisplay');
+  el.innerHTML = `<span>${filtered.length}</span> spots loaded`;
+}
+
+function starsHtml(rating) {
+  const full = Math.floor(rating);
+  const half = rating - full >= 0.3;
+  let s = '';
+  for (let i = 0; i < full; i++) s += '★';
+  if (half) s += '½';
+  return s;
+}
+
+function spin() {
+  if (isSpinning) return;
+  isSpinning = true;
+
+  const btn = document.getElementById('spinBtn');
+  const card = document.getElementById('resultCard');
+  const track = document.getElementById('slotTrack');
+
+  btn.classList.add('spinning');
+  btn.textContent = 'Spinning...';
+  card.classList.remove('visible');
+
+  const filtered = getFiltered();
+  const winner = filtered[Math.floor(Math.random() * filtered.length)];
+
+  // Build a long shuffled list for the slot animation
+  const shuffled = [];
+  for (let i = 0; i < 40; i++) {
+    shuffled.push(filtered[Math.floor(Math.random() * filtered.length)]);
+  }
+  shuffled.push(winner); // last item is the winner
+
+  track.innerHTML = shuffled.map(p =>
+    `<div class="slot-item"><span class="slot-emoji">${p.emoji}</span>${p.name}</div>`
+  ).join('');
+
+  // Animate
+  const itemH = 80;
+  const totalDist = (shuffled.length - 1) * itemH;
+  let start = null;
+  const duration = 3000;
+
+  track.style.transform = 'translateY(0)';
+
+  function easeOutExpo(t) {
+    return t === 1 ? 1 : 1 - Math.pow(2, -10 * t);
+  }
+
+  function animate(ts) {
+    if (!start) start = ts;
+    const elapsed = ts - start;
+    const progress = Math.min(elapsed / duration, 1);
+    const eased = easeOutExpo(progress);
+    const y = -eased * totalDist;
+    track.style.transform = `translateY(${y}px)`;
+
+    if (progress < 1) {
+      requestAnimationFrame(animate);
+    } else {
+      // Done! Show result
+      setTimeout(() => showResult(winner), 200);
+    }
+  }
+
+  requestAnimationFrame(animate);
+}
+
+function showResult(place) {
+  const card = document.getElementById('resultCard');
+  const btn = document.getElementById('spinBtn');
+
+  document.getElementById('resultName').textContent = place.name;
+  document.getElementById('resultAddr').textContent = place.addr;
+  document.getElementById('resultScore').textContent = place.rating.toFixed(1);
+  document.getElementById('resultStarIcons').textContent = starsHtml(place.rating);
+  document.getElementById('resultCount').textContent = `(${place.count.toLocaleString()} reviews)`;
+
+  const badge = document.getElementById('resultBadge');
+  badge.textContent = place.cat === 'food' ? 'FOOD' : 'DRINK';
+  badge.className = 'result-type-badge ' + (place.cat === 'food' ? 'badge-food' : 'badge-drink');
+
+  const q = encodeURIComponent(place.name + ' Hawthorne Portland');
+  document.getElementById('resultLink').href = `https://www.google.com/search?q=${q}`;
+
+  card.classList.add('visible');
+  btn.classList.remove('spinning');
+  btn.textContent = 'Spin Again';
+  isSpinning = false;
+
+  fireConfetti();
+}
+
+// Confetti
+function fireConfetti() {
+  const canvas = document.getElementById('confetti');
+  const ctx = canvas.getContext('2d');
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+
+  const colors = ['#ff6b35','#36e3b8','#a78bfa','#fbbf24','#ff4081','#00e5ff'];
+  const particles = [];
+
+  for (let i = 0; i < 80; i++) {
+    particles.push({
+      x: canvas.width / 2 + (Math.random() - 0.5) * 200,
+      y: canvas.height / 2,
+      vx: (Math.random() - 0.5) * 16,
+      vy: (Math.random() - 1) * 18 - 4,
+      color: colors[Math.floor(Math.random() * colors.length)],
+      size: Math.random() * 6 + 3,
+      rotation: Math.random() * 360,
+      rotSpeed: (Math.random() - 0.5) * 12,
+      life: 1,
+      decay: 0.008 + Math.random() * 0.008,
+    });
+  }
+
+  function draw() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    let alive = false;
+
+    particles.forEach(p => {
+      if (p.life <= 0) return;
+      alive = true;
+      p.x += p.vx;
+      p.y += p.vy;
+      p.vy += 0.4;
+      p.vx *= 0.99;
+      p.rotation += p.rotSpeed;
+      p.life -= p.decay;
+
+      ctx.save();
+      ctx.translate(p.x, p.y);
+      ctx.rotate(p.rotation * Math.PI / 180);
+      ctx.globalAlpha = Math.max(0, p.life);
+      ctx.fillStyle = p.color;
+      ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size * 0.6);
+      ctx.restore();
+    });
+
+    if (alive) requestAnimationFrame(draw);
+    else ctx.clearRect(0, 0, canvas.width, canvas.height);
+  }
+
+  requestAnimationFrame(draw);
+}
+
+// Init
+updateCount();
+// Populate idle slot
+(function initSlot() {
+  const track = document.getElementById('slotTrack');
+  const all = [...PLACES].sort(() => Math.random() - 0.5).slice(0, 5);
+  track.innerHTML = all.map(p =>
+    `<div class="slot-item"><span class="slot-emoji">${p.emoji}</span>${p.name}</div>`
+  ).join('');
+})();
+</script>
+
+</body>
+</html>
