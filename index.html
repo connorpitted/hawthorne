@@ -453,6 +453,7 @@ const PLACES = [
 let currentFilter = 'either';
 let walkOnly = false;
 let isSpinning = false;
+let shuffleBag = [];
 
 function getFiltered() {
   let list = [...PLACES];
@@ -461,8 +462,23 @@ function getFiltered() {
   return list;
 }
 
+// Shuffle bag: cycle through every place before repeating
+function pickWinner(filtered) {
+  // Rebuild bag if empty or filters changed
+  if (shuffleBag.length === 0 || !shuffleBag.every(p => filtered.includes(p))) {
+    shuffleBag = [...filtered];
+    // Fisher-Yates shuffle
+    for (let i = shuffleBag.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffleBag[i], shuffleBag[j]] = [shuffleBag[j], shuffleBag[i]];
+    }
+  }
+  return shuffleBag.pop();
+}
+
 function setFilter(f) {
   currentFilter = f;
+  shuffleBag = [];
   document.querySelectorAll('.pill').forEach(p => {
     p.className = 'pill';
     if (p.dataset.filter === f) p.classList.add('active-' + f);
@@ -473,6 +489,7 @@ function setFilter(f) {
 
 function toggleWalk() {
   walkOnly = !walkOnly;
+  shuffleBag = [];
   document.getElementById('walkToggle').classList.toggle('active', walkOnly);
   updateCount();
   document.getElementById('resultCard').classList.remove('visible');
@@ -507,7 +524,7 @@ function spin() {
   btn.textContent = 'Spinning...';
   card.classList.remove('visible');
 
-  const winner = filtered[Math.floor(Math.random() * filtered.length)];
+  const winner = pickWinner(filtered);
 
   const shuffled = [];
   for (let i = 0; i < 40; i++) {
