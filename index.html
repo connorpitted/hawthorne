@@ -67,7 +67,7 @@
 
   /* Filter pills */
   .filter-row {
-    display: flex; gap: 8px; justify-content: center; margin-bottom: 32px;
+    display: flex; gap: 8px; justify-content: center; margin-bottom: 16px;
     flex-wrap: wrap;
   }
 
@@ -99,6 +99,41 @@
     border-color: var(--purple); color: var(--purple);
     background: linear-gradient(135deg, #a78bfa12, #a78bfa08);
     box-shadow: 0 0 20px #a78bfa30;
+  }
+
+  /* Walk toggle */
+  .walk-toggle {
+    display: flex; align-items: center; justify-content: center; gap: 10px;
+    margin-bottom: 32px;
+    cursor: pointer; user-select: none;
+  }
+
+  .walk-toggle-label {
+    font-size: 13px; color: var(--text-dim); font-weight: 500;
+    transition: color 0.25s ease;
+  }
+
+  .walk-toggle.active .walk-toggle-label { color: var(--text); }
+
+  .walk-toggle-track {
+    width: 44px; height: 24px; border-radius: 100px;
+    background: var(--surface2); border: 1.5px solid var(--border);
+    position: relative; transition: all 0.25s ease;
+  }
+
+  .walk-toggle-thumb {
+    width: 18px; height: 18px; border-radius: 50%;
+    background: var(--text-dim);
+    position: absolute; top: 2px; left: 2px;
+    transition: all 0.25s ease;
+  }
+
+  .walk-toggle.active .walk-toggle-track {
+    background: #fbbf2430; border-color: #fbbf24;
+  }
+
+  .walk-toggle.active .walk-toggle-thumb {
+    left: 22px; background: #fbbf24;
   }
 
   /* Spin button */
@@ -257,13 +292,20 @@
   <header>
     <div class="logo-text">SE Portland</div>
     <h1>Hawthorne Roulette</h1>
-    <p class="subtitle">Spin the wheel on <span>50+ spots</span> from 1st to 60th</p>
+    <p class="subtitle" id="subtitle">Spin the wheel on <span>100+ spots</span> around Hawthorne</p>
   </header>
 
   <div class="filter-row">
     <button class="pill active-either" data-filter="either" onclick="setFilter('either')">Either</button>
     <button class="pill" data-filter="food" onclick="setFilter('food')">Food</button>
     <button class="pill" data-filter="drink" onclick="setFilter('drink')">Drink</button>
+  </div>
+
+  <div class="walk-toggle" id="walkToggle" onclick="toggleWalk()">
+    <span class="walk-toggle-label">Walking distance only</span>
+    <div class="walk-toggle-track">
+      <div class="walk-toggle-thumb"></div>
+    </div>
   </div>
 
   <div class="slot-window" id="slotWindow">
@@ -292,64 +334,131 @@
 
 <script>
 const PLACES = [
-  // FOOD
-  {name:"Nice Time PDX", addr:"3757 SE Hawthorne", rating:5.0, count:27, cat:"food", emoji:"🍝"},
-  {name:"Little Griddle", addr:"3566 SE Hawthorne", rating:4.6, count:271, cat:"food", emoji:"🥞"},
-  {name:"Jam On Hawthorne", addr:"2239 SE Hawthorne", rating:4.5, count:3246, cat:"food", emoji:"🍳"},
-  {name:"Farmhouse Kitchen Thai", addr:"3354 SE Hawthorne", rating:4.7, count:2968, cat:"food", emoji:"🍜"},
-  {name:"Bamboo House", addr:"4005 SE Hawthorne", rating:4.6, count:401, cat:"food", emoji:"🍲"},
-  {name:"Short Round / Crying Tigers", addr:"3962 SE Hawthorne", rating:4.6, count:414, cat:"food", emoji:"🐉"},
-  {name:"Cubo", addr:"3106 SE Hawthorne", rating:4.5, count:1938, cat:"food", emoji:"🇨🇺"},
-  {name:"Apizza Scholls", addr:"4741 SE Hawthorne", rating:4.6, count:2209, cat:"food", emoji:"🍕"},
-  {name:"OK Omens", addr:"1758 SE Hawthorne", rating:4.4, count:332, cat:"food", emoji:"🦪"},
-  {name:"Khao Moo Dang", addr:"3145 SE Hawthorne", rating:4.7, count:985, cat:"food", emoji:"🍛"},
-  {name:"The Hazel Room", addr:"3279 SE Hawthorne", rating:4.5, count:627, cat:"food", emoji:"🧇"},
-  {name:"Straight From New York Pizza", addr:"3701 SE Hawthorne", rating:4.2, count:397, cat:"food", emoji:"🍕"},
-  {name:"Rovente Pizzeria", addr:"2394 SE Hawthorne", rating:4.4, count:341, cat:"food", emoji:"🍕"},
-  {name:"HOTLIPS Pizza", addr:"2211 SE Hawthorne", rating:4.3, count:638, cat:"food", emoji:"🍕"},
-  {name:"Sarda Pizza", addr:"4225 SE Hawthorne", rating:5.0, count:19, cat:"food", emoji:"🍕"},
-  {name:"La Morenita", addr:"3207 SE Hawthorne", rating:4.7, count:167, cat:"food", emoji:"🌮"},
-  {name:"Las Marias Mexican Food", addr:"3950 SE Hawthorne", rating:4.7, count:35, cat:"food", emoji:"🌮"},
-  {name:"Pepino's Fresh Mexican Grill", addr:"3832 SE Hawthorne", rating:4.4, count:968, cat:"food", emoji:"🌯"},
-  {name:"\u00bfPor Qu\u00e9 No?", addr:"4635 SE Hawthorne", rating:4.5, count:3358, cat:"food", emoji:"🌮"},
-  {name:"Ni\u00f1os Birrieria", addr:"3757 SE Hawthorne", rating:4.9, count:16, cat:"food", emoji:"🫕"},
-  {name:"Hawthorne Street Food & Bar", addr:"4225 SE Hawthorne", rating:4.7, count:38, cat:"food", emoji:"🍔"},
-  {name:"Mochinut", addr:"3616 SE Hawthorne", rating:4.7, count:593, cat:"food", emoji:"🍩"},
-  {name:"Dairy Hill Ice Cream", addr:"SE 36th & Hawthorne", rating:4.3, count:92, cat:"food", emoji:"🍦"},
-  {name:"Tsuki", addr:"1445 SE Hawthorne", rating:4.9, count:136, cat:"food", emoji:"🍧"},
-  // CAFES (food-adjacent)
-  {name:"Common Grounds", addr:"4321 SE Hawthorne", rating:4.6, count:563, cat:"food", emoji:"☕"},
-  {name:"Harder Day Coffee", addr:"3757 SE Hawthorne", rating:4.4, count:17, cat:"food", emoji:"☕"},
-  {name:"Tov Coffee", addr:"3639 SE Hawthorne", rating:4.7, count:945, cat:"food", emoji:"☕"},
-  {name:"Coava Coffee Roasters", addr:"2631 SE Hawthorne", rating:4.6, count:518, cat:"food", emoji:"☕"},
-  {name:"Golden Hour Coffee", addr:"3538 SE Hawthorne", rating:4.5, count:86, cat:"food", emoji:"☕"},
-  {name:"Albina Press", addr:"5012 SE Hawthorne", rating:4.5, count:467, cat:"food", emoji:"☕"},
-  {name:"Oui Presse", addr:"1740 SE Hawthorne", rating:4.7, count:330, cat:"food", emoji:"☕"},
-  {name:"The Fresh Pot", addr:"3729 SE Hawthorne", rating:4.4, count:173, cat:"food", emoji:"☕"},
-  // DRINK
-  {name:"Bar Mame", addr:"3279 SE Hawthorne", rating:4.9, count:118, cat:"drink", emoji:"🍸"},
-  {name:"Mulligan's Bar & Grill", addr:"3518 SE Hawthorne", rating:4.3, count:392, cat:"drink", emoji:"🍺"},
-  {name:"Bar of the Gods", addr:"4801 SE Hawthorne", rating:4.4, count:552, cat:"drink", emoji:"⚡"},
-  {name:"Gold Dust Meridian", addr:"3267 SE Hawthorne", rating:4.4, count:758, cat:"drink", emoji:"🪩"},
-  {name:"Space Room Lounge", addr:"4800 SE Hawthorne", rating:4.5, count:228, cat:"drink", emoji:"👽"},
-  {name:"Angelo's", addr:"4620 SE Hawthorne", rating:4.4, count:126, cat:"drink", emoji:"🎱"},
-  {name:"Afterlife", addr:"3632 SE Hawthorne", rating:4.8, count:61, cat:"drink", emoji:"🌙"},
-  {name:"Hawthorne Hideaway", addr:"2221 SE Hawthorne", rating:4.5, count:504, cat:"drink", emoji:"🎤"},
-  {name:"No Fun Bar", addr:"1709 SE Hawthorne", rating:4.4, count:223, cat:"drink", emoji:"🎸"},
-  {name:"Steeplejack Brewing", addr:"3757 SE Hawthorne", rating:4.9, count:44, cat:"drink", emoji:"🍻"},
-  {name:"TPK Brewing Co.", addr:"5051 SE Hawthorne", rating:4.9, count:378, cat:"drink", emoji:"🐉"},
-  {name:"McMenamins Barley Mill", addr:"1629 SE Hawthorne", rating:4.4, count:398, cat:"drink", emoji:"🍺"},
-  {name:"Lucky Labrador Brew Pub", addr:"915 SE Hawthorne", rating:4.0, count:583, cat:"drink", emoji:"🐕"},
-  {name:"Firefly Wine Room", addr:"4538 SE Hawthorne", rating:5.0, count:12, cat:"drink", emoji:"🍷"},
-  {name:"Straightaway Cocktails", addr:"901 SE Hawthorne", rating:4.8, count:111, cat:"drink", emoji:"🍹"},
+  // ═══════════════════════════════════════
+  // FOOD — Hawthorne
+  // ═══════════════════════════════════════
+  {name:"Nice Time PDX", addr:"3757 SE Hawthorne", rating:5.0, count:27, cat:"food", emoji:"\u{1F35D}", walk:true},
+  {name:"Little Griddle", addr:"3566 SE Hawthorne", rating:4.6, count:271, cat:"food", emoji:"\u{1F95E}", walk:true},
+  {name:"Jam On Hawthorne", addr:"2239 SE Hawthorne", rating:4.5, count:3246, cat:"food", emoji:"\u{1F373}", walk:false},
+  {name:"Farmhouse Kitchen Thai", addr:"3354 SE Hawthorne", rating:4.7, count:2968, cat:"food", emoji:"\u{1F35C}", walk:true},
+  {name:"Bamboo House", addr:"4005 SE Hawthorne", rating:4.6, count:401, cat:"food", emoji:"\u{1F372}", walk:true},
+  {name:"Short Round / Crying Tigers", addr:"3962 SE Hawthorne", rating:4.6, count:414, cat:"food", emoji:"\u{1F409}", walk:true},
+  {name:"Cubo", addr:"3106 SE Hawthorne", rating:4.5, count:1938, cat:"food", emoji:"\u{1F1E8}\u{1F1FA}", walk:true},
+  {name:"Apizza Scholls", addr:"4741 SE Hawthorne", rating:4.6, count:2209, cat:"food", emoji:"\u{1F355}", walk:false},
+  {name:"OK Omens", addr:"1758 SE Hawthorne", rating:4.4, count:332, cat:"food", emoji:"\u{1F9AA}", walk:false},
+  {name:"Khao Moo Dang", addr:"3145 SE Hawthorne", rating:4.7, count:985, cat:"food", emoji:"\u{1F35B}", walk:true},
+  {name:"The Hazel Room", addr:"3279 SE Hawthorne", rating:4.5, count:627, cat:"food", emoji:"\u{1F9C7}", walk:true},
+  {name:"Straight From New York Pizza", addr:"3701 SE Hawthorne", rating:4.2, count:397, cat:"food", emoji:"\u{1F355}", walk:true},
+  {name:"Rovente Pizzeria", addr:"2394 SE Hawthorne", rating:4.4, count:341, cat:"food", emoji:"\u{1F355}", walk:false},
+  {name:"HOTLIPS Pizza", addr:"2211 SE Hawthorne", rating:4.3, count:638, cat:"food", emoji:"\u{1F355}", walk:false},
+  {name:"Sarda Pizza", addr:"4225 SE Hawthorne", rating:5.0, count:19, cat:"food", emoji:"\u{1F355}", walk:false},
+  {name:"La Morenita", addr:"3207 SE Hawthorne", rating:4.7, count:167, cat:"food", emoji:"\u{1F32E}", walk:true},
+  {name:"Las Marias Mexican Food", addr:"3950 SE Hawthorne", rating:4.7, count:35, cat:"food", emoji:"\u{1F32E}", walk:true},
+  {name:"Pepino\u2019s Fresh Mexican Grill", addr:"3832 SE Hawthorne", rating:4.4, count:968, cat:"food", emoji:"\u{1F32F}", walk:true},
+  {name:"\u00bfPor Qu\u00e9 No?", addr:"4635 SE Hawthorne", rating:4.5, count:3358, cat:"food", emoji:"\u{1F32E}", walk:false},
+  {name:"Ni\u00f1os Birrieria", addr:"3757 SE Hawthorne", rating:4.9, count:16, cat:"food", emoji:"\u{1FAD5}", walk:true},
+  {name:"Hawthorne Street Food & Bar", addr:"4225 SE Hawthorne", rating:4.7, count:38, cat:"food", emoji:"\u{1F354}", walk:false},
+  {name:"Mochinut", addr:"3616 SE Hawthorne", rating:4.7, count:593, cat:"food", emoji:"\u{1F369}", walk:true},
+  {name:"Dairy Hill Ice Cream", addr:"SE 36th & Hawthorne", rating:4.3, count:92, cat:"food", emoji:"\u{1F366}", walk:true},
+  {name:"Tsuki", addr:"1445 SE Hawthorne", rating:4.9, count:136, cat:"food", emoji:"\u{1F367}", walk:false},
+  {name:"Tomo Ramen", addr:"3545 SE Hawthorne", rating:4.7, count:476, cat:"food", emoji:"\u{1F35C}", walk:true},
+  {name:"Bread and Ink Cafe", addr:"3610 SE Hawthorne", rating:4.0, count:659, cat:"food", emoji:"\u{1F373}", walk:true},
+  {name:"Plaza Coyoacan", addr:"3433 SE Hawthorne", rating:4.5, count:579, cat:"food", emoji:"\u{1F1F2}\u{1F1FD}", walk:true},
+  {name:"Lardo", addr:"1212 SE Hawthorne", rating:4.6, count:4944, cat:"food", emoji:"\u{1F96A}", walk:false},
+  {name:"Grand Central Bakery", addr:"2230 SE Hawthorne", rating:4.5, count:457, cat:"food", emoji:"\u{1F950}", walk:false},
+  {name:"Cartopia", addr:"1207 SE Hawthorne", rating:4.2, count:197, cat:"food", emoji:"\u{1F6D2}", walk:false},
+  // Cafes — Hawthorne
+  {name:"Common Grounds", addr:"4321 SE Hawthorne", rating:4.6, count:563, cat:"food", emoji:"\u2615", walk:false},
+  {name:"Harder Day Coffee", addr:"3757 SE Hawthorne", rating:4.4, count:17, cat:"food", emoji:"\u2615", walk:true},
+  {name:"Tov Coffee", addr:"3639 SE Hawthorne", rating:4.7, count:945, cat:"food", emoji:"\u2615", walk:true},
+  {name:"Coava Coffee Roasters", addr:"2631 SE Hawthorne", rating:4.6, count:518, cat:"food", emoji:"\u2615", walk:true},
+  {name:"Golden Hour Coffee", addr:"3538 SE Hawthorne", rating:4.5, count:86, cat:"food", emoji:"\u2615", walk:true},
+  {name:"Albina Press", addr:"5012 SE Hawthorne", rating:4.5, count:467, cat:"food", emoji:"\u2615", walk:false},
+  {name:"Oui Presse", addr:"1740 SE Hawthorne", rating:4.7, count:330, cat:"food", emoji:"\u2615", walk:false},
+  {name:"The Fresh Pot", addr:"3729 SE Hawthorne", rating:4.4, count:173, cat:"food", emoji:"\u2615", walk:true},
+
+  // ═══════════════════════════════════════
+  // FOOD — Belmont
+  // ═══════════════════════════════════════
+  {name:"Hoda\u2019s Middle Eastern", addr:"3401 SE Belmont", rating:4.6, count:692, cat:"food", emoji:"\u{1F9C6}", walk:true},
+  {name:"Taqueria Los Punales", addr:"3312 SE Belmont", rating:4.7, count:296, cat:"food", emoji:"\u{1F32E}", walk:true},
+  {name:"Khun Pic\u2019s Bahn Thai", addr:"3429 SE Belmont", rating:4.7, count:206, cat:"food", emoji:"\u{1F35C}", walk:true},
+  {name:"Bluto\u2019s", addr:"2838 SE Belmont", rating:4.6, count:700, cat:"food", emoji:"\u{1FADA}", walk:true},
+  {name:"Norah", addr:"3801 SE Belmont", rating:4.6, count:137, cat:"food", emoji:"\u{1F33F}", walk:true},
+  {name:"Laughing Planet", addr:"3320 SE Belmont", rating:4.3, count:218, cat:"food", emoji:"\u{1F32F}", walk:true},
+  {name:"Bare Bones Cafe", addr:"2908 SE Belmont", rating:4.2, count:249, cat:"food", emoji:"\u{1F354}", walk:true},
+  {name:"Slappy Cakes", addr:"4246 SE Belmont", rating:4.3, count:985, cat:"food", emoji:"\u{1F95E}", walk:false},
+  {name:"The Mont", addr:"2411 SE Belmont", rating:4.5, count:141, cat:"food", emoji:"\u{1F373}", walk:false},
+  {name:"YUI", addr:"4246 SE Belmont", rating:4.7, count:181, cat:"food", emoji:"\u{1F35C}", walk:false},
+
+  // ═══════════════════════════════════════
+  // FOOD — Division
+  // ═══════════════════════════════════════
+  {name:"Ava Gene\u2019s", addr:"3377 SE Division", rating:4.5, count:875, cat:"food", emoji:"\u{1F35D}", walk:true},
+  {name:"Salt & Straw", addr:"3345 SE Division", rating:4.9, count:1600, cat:"food", emoji:"\u{1F366}", walk:true},
+  {name:"Cibo", addr:"3539 SE Division", rating:4.6, count:1100, cat:"food", emoji:"\u{1F1EE}\u{1F1F9}", walk:true},
+  {name:"Harlow", addr:"3715 SE Division", rating:4.3, count:465, cat:"food", emoji:"\u{1F957}", walk:true},
+  {name:"Lawless Barbecue", addr:"3412 SE Division", rating:4.6, count:166, cat:"food", emoji:"\u{1F356}", walk:true},
+  {name:"Oma\u2019s Hideaway", addr:"3131 SE Division", rating:4.4, count:377, cat:"food", emoji:"\u{1F35C}", walk:true},
+  {name:"Nuestra Cocina", addr:"2135 SE Division", rating:4.7, count:660, cat:"food", emoji:"\u{1F1F2}\u{1F1FD}", walk:false},
+  {name:"Mestizo", addr:"2910 SE Division", rating:4.6, count:240, cat:"food", emoji:"\u{1F30E}", walk:true},
+  {name:"L\u2019Echelle", addr:"4537 SE Division", rating:4.6, count:80, cat:"food", emoji:"\u{1F1EB}\u{1F1F7}", walk:false},
+  {name:"Palomar", addr:"959 SE Division", rating:4.6, count:1228, cat:"food", emoji:"\u{1F1E8}\u{1F1FA}", walk:false},
+  // Cafes — Division
+  {name:"Stumptown Coffee", addr:"4525 SE Division", rating:4.5, count:370, cat:"food", emoji:"\u2615", walk:false},
+  {name:"Good Coffee", addr:"4747 SE Division", rating:4.6, count:221, cat:"food", emoji:"\u2615", walk:false},
+
+  // ═══════════════════════════════════════
+  // DRINK — Hawthorne
+  // ═══════════════════════════════════════
+  {name:"Bar Mame", addr:"3279 SE Hawthorne", rating:4.9, count:118, cat:"drink", emoji:"\u{1F378}", walk:true},
+  {name:"Mulligan\u2019s Bar & Grill", addr:"3518 SE Hawthorne", rating:4.3, count:392, cat:"drink", emoji:"\u{1F37A}", walk:true},
+  {name:"Bar of the Gods", addr:"4801 SE Hawthorne", rating:4.4, count:552, cat:"drink", emoji:"\u26A1", walk:false},
+  {name:"Gold Dust Meridian", addr:"3267 SE Hawthorne", rating:4.4, count:758, cat:"drink", emoji:"\u{1FA69}", walk:true},
+  {name:"Space Room Lounge", addr:"4800 SE Hawthorne", rating:4.5, count:228, cat:"drink", emoji:"\u{1F47D}", walk:false},
+  {name:"Angelo\u2019s", addr:"4620 SE Hawthorne", rating:4.4, count:126, cat:"drink", emoji:"\u{1F3B1}", walk:false},
+  {name:"Afterlife", addr:"3632 SE Hawthorne", rating:4.8, count:61, cat:"drink", emoji:"\u{1F319}", walk:true},
+  {name:"Hawthorne Hideaway", addr:"2221 SE Hawthorne", rating:4.5, count:504, cat:"drink", emoji:"\u{1F3A4}", walk:false},
+  {name:"No Fun Bar", addr:"1709 SE Hawthorne", rating:4.4, count:223, cat:"drink", emoji:"\u{1F3B8}", walk:false},
+  {name:"Steeplejack Brewing", addr:"3757 SE Hawthorne", rating:4.9, count:44, cat:"drink", emoji:"\u{1F37B}", walk:true},
+  {name:"TPK Brewing Co.", addr:"5051 SE Hawthorne", rating:4.9, count:378, cat:"drink", emoji:"\u{1F409}", walk:false},
+  {name:"McMenamins Barley Mill", addr:"1629 SE Hawthorne", rating:4.4, count:398, cat:"drink", emoji:"\u{1F37A}", walk:false},
+  {name:"Lucky Labrador Brew Pub", addr:"915 SE Hawthorne", rating:4.0, count:583, cat:"drink", emoji:"\u{1F415}", walk:false},
+  {name:"Firefly Wine Room", addr:"4538 SE Hawthorne", rating:5.0, count:12, cat:"drink", emoji:"\u{1F377}", walk:false},
+  {name:"Straightaway Cocktails", addr:"901 SE Hawthorne", rating:4.8, count:111, cat:"drink", emoji:"\u{1F379}", walk:false},
+  {name:"NASO", addr:"1744 SE Hawthorne", rating:4.6, count:80, cat:"drink", emoji:"\u{1F377}", walk:false},
+
+  // ═══════════════════════════════════════
+  // DRINK — Belmont
+  // ═══════════════════════════════════════
+  {name:"Triple Nickel Pub", addr:"3646 SE Belmont", rating:4.2, count:717, cat:"drink", emoji:"\u{1F3C8}", walk:true},
+  {name:"Aalto Lounge", addr:"3356 SE Belmont", rating:4.3, count:350, cat:"drink", emoji:"\u{1F378}", walk:true},
+  {name:"Sugar Hill", addr:"3348 SE Belmont", rating:4.1, count:331, cat:"drink", emoji:"\u{1F378}", walk:true},
+  {name:"The Vern", addr:"2622 SE Belmont", rating:4.5, count:349, cat:"drink", emoji:"\u{1F37A}", walk:true},
+  {name:"Bar Loon", addr:"3326 SE Belmont", rating:4.4, count:80, cat:"drink", emoji:"\u{1F377}", walk:true},
+  {name:"Horse Brass Pub", addr:"4534 SE Belmont", rating:4.6, count:2000, cat:"drink", emoji:"\u{1F37A}", walk:false},
+  {name:"Belmont Station", addr:"4500 SE Stark", rating:4.7, count:800, cat:"drink", emoji:"\u{1F37A}", walk:false},
+  {name:"SOMA Kombucha", addr:"3777 SE Belmont", rating:4.9, count:302, cat:"drink", emoji:"\u{1F375}", walk:true},
+
+  // ═══════════════════════════════════════
+  // DRINK — Division & Side Streets
+  // ═══════════════════════════════════════
+  {name:"Little Beast Brewing", addr:"3412 SE Division", rating:4.7, count:400, cat:"drink", emoji:"\u{1F37B}", walk:true},
+  {name:"1919 Lounge", addr:"3588 SE Division", rating:4.8, count:54, cat:"drink", emoji:"\u{1F378}", walk:true},
+  {name:"Side Street Tavern", addr:"828 SE 34th Ave", rating:4.3, count:447, cat:"drink", emoji:"\u{1F37A}", walk:true},
+  {name:"Company Wine", addr:"916 SE 34th Ave", rating:4.5, count:80, cat:"drink", emoji:"\u{1F377}", walk:true},
+  {name:"Holy Ghost Bar", addr:"4107 SE 28th Ave", rating:4.5, count:200, cat:"drink", emoji:"\u{1F378}", walk:false},
 ];
 
 let currentFilter = 'either';
+let walkOnly = false;
 let isSpinning = false;
 
 function getFiltered() {
-  if (currentFilter === 'either') return [...PLACES];
-  return PLACES.filter(p => p.cat === currentFilter);
+  let list = [...PLACES];
+  if (currentFilter !== 'either') list = list.filter(p => p.cat === currentFilter);
+  if (walkOnly) list = list.filter(p => p.walk);
+  return list;
 }
 
 function setFilter(f) {
@@ -358,6 +467,13 @@ function setFilter(f) {
     p.className = 'pill';
     if (p.dataset.filter === f) p.classList.add('active-' + f);
   });
+  updateCount();
+  document.getElementById('resultCard').classList.remove('visible');
+}
+
+function toggleWalk() {
+  walkOnly = !walkOnly;
+  document.getElementById('walkToggle').classList.toggle('active', walkOnly);
   updateCount();
   document.getElementById('resultCard').classList.remove('visible');
 }
@@ -372,13 +488,15 @@ function starsHtml(rating) {
   const full = Math.floor(rating);
   const half = rating - full >= 0.3;
   let s = '';
-  for (let i = 0; i < full; i++) s += '★';
-  if (half) s += '½';
+  for (let i = 0; i < full; i++) s += '\u2605';
+  if (half) s += '\u00BD';
   return s;
 }
 
 function spin() {
   if (isSpinning) return;
+  const filtered = getFiltered();
+  if (filtered.length === 0) return;
   isSpinning = true;
 
   const btn = document.getElementById('spinBtn');
@@ -389,21 +507,18 @@ function spin() {
   btn.textContent = 'Spinning...';
   card.classList.remove('visible');
 
-  const filtered = getFiltered();
   const winner = filtered[Math.floor(Math.random() * filtered.length)];
 
-  // Build a long shuffled list for the slot animation
   const shuffled = [];
   for (let i = 0; i < 40; i++) {
     shuffled.push(filtered[Math.floor(Math.random() * filtered.length)]);
   }
-  shuffled.push(winner); // last item is the winner
+  shuffled.push(winner);
 
   track.innerHTML = shuffled.map(p =>
     `<div class="slot-item"><span class="slot-emoji">${p.emoji}</span>${p.name}</div>`
   ).join('');
 
-  // Animate
   const itemH = 80;
   const totalDist = (shuffled.length - 1) * itemH;
   let start = null;
@@ -426,7 +541,6 @@ function spin() {
     if (progress < 1) {
       requestAnimationFrame(animate);
     } else {
-      // Done! Show result
       setTimeout(() => showResult(winner), 200);
     }
   }
@@ -448,7 +562,7 @@ function showResult(place) {
   badge.textContent = place.cat === 'food' ? 'FOOD' : 'DRINK';
   badge.className = 'result-type-badge ' + (place.cat === 'food' ? 'badge-food' : 'badge-drink');
 
-  const q = encodeURIComponent(place.name + ' Hawthorne Portland');
+  const q = encodeURIComponent(place.name + ' Portland OR');
   document.getElementById('resultLink').href = `https://www.google.com/search?q=${q}`;
 
   card.classList.add('visible');
@@ -459,7 +573,6 @@ function showResult(place) {
   fireConfetti();
 }
 
-// Confetti
 function fireConfetti() {
   const canvas = document.getElementById('confetti');
   const ctx = canvas.getContext('2d');
@@ -516,7 +629,6 @@ function fireConfetti() {
 
 // Init
 updateCount();
-// Populate idle slot
 (function initSlot() {
   const track = document.getElementById('slotTrack');
   const all = [...PLACES].sort(() => Math.random() - 0.5).slice(0, 5);
